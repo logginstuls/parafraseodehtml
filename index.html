@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generador de Plantillas HTML para Email</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f4f4f9;
+        }
+        .container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .controls, .output {
+            flex: 1;
+            min-width: 300px;
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        textarea, pre, #template_html_output, iframe {
+            width: 100%;
+            min-height: 200px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+            margin-bottom: 15px;
+            font-family: 'Courier New', monospace;
+            white-space: pre-wrap;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-right: 10px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .preview-container {
+            margin-top: 20px;
+        }
+        .preview-container iframe {
+            border: 1px solid #333;
+            width: 100%;
+            height: 400px;
+            resize: vertical;
+        }
+        .placeholder-list {
+            margin-top: 20px;
+            padding: 10px;
+            border: 1px dashed #007bff;
+            background-color: #e9f5ff;
+            border-radius: 4px;
+        }
+        .note {
+            color: red;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>✉️ Generador Avanzado de Plantillas para Email</h1>
+    <div class="container">
+        
+        <div class="controls">
+            <h2>Paso 1: Ingreso y Parafraseo</h2>
+            <p>Introduce el texto base que quieres que aparezca en el cuerpo del email.</p>
+            <textarea id="input_text" placeholder="Ej: Hola [NOMBRE], te escribimos para informarte sobre nuestra nueva oferta..." rows="10"></textarea>
+            
+            <button onclick="generateTemplate()">Parafrasear & Generar Plantilla</button>
+            <button onclick="copyToClipboard('template_html_output')">Copiar HTML</button>
+
+            <hr>
+
+            <h3>Texto Parafraseado</h3>
+            <p class="note">✅ **Conexión Live:** Este texto vendrá de tu servidor Node.js.</p>
+            <textarea id="paraphrased_text" placeholder="Aquí aparecerá el texto después de la llamada al servidor..." rows="5" readonly></textarea>
+
+            <div class="placeholder-list">
+                <h3>Lista de Parámetros Dinámicos (Placeholders)</h3>
+                <p>Usa estos marcadores en tu texto:</p>
+                <ul>
+                    <li>**[NOMBRE]**: Nombre del destinatario.</li>
+                    <li>**[APELLIDO]**: Apellido del destinatario.</li>
+                    <li>**[CORREO]**: Dirección de correo.</li>
+                    <li>**[OFERTA_LINK]**: Enlace principal.</li>
+                    <li>**[FECHA_ACTUAL]**: Fecha de envío.</li>
+                    <li>**[CODIGO_DESCUENTO]**: Un código único.</li>
+                    <li>**[NOMBRE_REMITENTE]**: Nombre de quien envía.</li>
+                    <li>**[DIRECCION_EMPRESA]**: Dirección física (Legal).</li>
+                    <li>**[ENLACE_BAJA]**: Enlace para darse de baja (Legal).</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="output">
+            <h2>Paso 2: Plantilla HTML Generada</h2>
+            <p>Código HTML optimizado para bandeja de entrada y no rastreable.</p>
+            <textarea id="template_html_output" readonly></textarea>
+
+            <div class="preview-container">
+                <h2>Paso 3: Vista Previa en Vivo</h2>
+                <p>Así se verá tu email (diseño basado en tablas y CSS inline).</p>
+                <iframe id="template_preview" frameborder="0" sandbox="allow-same-origin allow-scripts"></iframe>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- CONFIGURACIÓN CRÍTICA DEL BACKEND ---
+        // 🚨 PASO 1: CAMBIA ESTA URL por la URL REAL de tu servicio Node.js desplegado en Render.
+        const SERVER_URL = 'https://parafraseo.onrender.com'; // ¡Cámbiala! Ejemplo: 'https://mi-servidor-render.onrender.com/paraphrase'
+
+        
+        // --- FUNCIÓN PRINCIPAL: Llama al Backend y genera el HTML ---
+        async function generateTemplate() {
+            const inputText = document.getElementById('input_text').value;
+            const paraphrasedTextElement = document.getElementById('paraphrased_text');
+            const htmlOutputElement = document.getElementById('template_html_output');
+            const previewIframe = document.getElementById('template_preview');
+            
+            if (inputText.trim() === "") {
+                alert("Por favor, introduce el texto base para la plantilla.");
+                return;
+            }
+
+            paraphrasedTextElement.value = "Conectando con el servidor para parafrasear...";
+            
+            try {
+                // Petición POST al servidor de Node.js
+                const response = await fetch(SERVER_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ text: inputText })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                const finalContent = data.paraphrased; // Obtenemos el texto parafraseado
+
+                // 1. Muestra el texto parafraseado real
+                paraphrasedTextElement.value = finalContent;
+
+                // 2. Generación de la plantilla HTML
+                const generatedHtml = generateEmailTemplate(finalContent);
+                htmlOutputElement.value = generatedHtml;
+
+                // 3. Actualización de la Vista Previa en Vivo
+                updateLivePreview(generatedHtml, previewIframe);
+
+            } catch (error) {
+                console.error('Error al conectar con el servidor de parafraseo:', error);
+                paraphrasedTextElement.value = `ERROR: No se pudo conectar al servidor. Asegúrate de que la URL (${SERVER_URL}) sea correcta.`;
+                alert("Hubo un error al parafrasear el texto. Revisa la consola para más detalles.");
+            }
+        }
+
+
+        // --- FUNCIÓN PARA GENERAR LA PLANTILLA HTML (Corregida) ---
+        function generateEmailTemplate(content) {
+            // Plantilla con protocolos "limpios": Tablas, CSS Inline y cumplimiento legal.
+            
+            const template = `<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tu Email | [NOMBRE]</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #f4f4f4;">
+
+    <table border="0" cellpadding="0" cellspacing="0" width="100%">
+        <tr>
+            <td align="center" style="padding: 20px 0 30px 0;">
+
+                <table border="0" cellpadding="0" cellspacing="0" width="600" style="border-collapse: collapse; background-color: #ffffff; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+                    
+                    <tr>
+                        <td align="center" bgcolor="#007bff" style="padding: 40px 0 30px 0; font-size: 24px; font-weight: bold; color: #ffffff;">
+                            Tu Empresa
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td bgcolor="#ffffff" style="padding: 40px 30px 40px 30px;">
+                            <table border="0" cellpadding="0" cellspacing="0" width="100%">
+                                <tr>
+                                    <td style="color: #153643; font-family: Arial, sans-serif; font-size: 16px; line-height: 24px;">
+                                        <h1 style="font-size: 20px; margin: 0 0 20px 0;">¡Hola [NOMBRE]!</h1>
+                                        
+                                        <p style="margin: 0 0 15px 0;">${content}</p>
+
+                                        <p style="margin: 0 0 15px 0;">Haz clic aquí para ver más: <a href="[OFERTA_LINK]" style="color: #007bff; text-decoration: none;">Ver Oferta</a></p>
+
+                                        <p style="margin: 0;">Atentamente,<br>[NOMBRE_REMITENTE]</p>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td bgcolor="#eeeded" style="padding: 30px 30px 30px 30px;">
+                            <table border="0" cellpadding="0" cellspacing="0" width="100%">
+                                <tr>
+                                    <td style="color: #999999; font-family: Arial, sans-serif; font-size: 12px; text-align: center;">
+                                        &copy; [FECHA_ACTUAL] Tu Empresa. | [DIRECCION_EMPRESA] | <a href="[ENLACE_BAJA]" style="color: #999999;">Darse de Baja</a>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                </table>
+                </td>
+        </tr>
+    </table>
+    </body>
+</html>
+`;
+            return template;
+        }
+
+        // --- FUNCIÓN PARA EL EDITOR EN VIVO (Muestra el HTML generado) ---
+        function updateLivePreview(htmlContent, iframeElement) {
+            iframeElement.contentWindow.document.open();
+            iframeElement.contentWindow.document.write(htmlContent);
+            iframeElement.contentWindow.document.close();
+        }
+
+        // --- FUNCIÓN PARA COPIAR AL PORTAPAPELES ---
+        function copyToClipboard(elementId) {
+            const element = document.getElementById(elementId);
+            element.select();
+            element.setSelectionRange(0, 99999); 
+            document.execCommand("copy");
+            alert("Código HTML copiado al portapapeles.");
+        }
+        
+        // Carga Inicial: Se ejecuta al cargar la página para generar una plantilla inicial.
+        document.addEventListener('DOMContentLoaded', () => {
+             // Llama a la función de generación con contenido vacío al inicio
+             updateLivePreview(generateEmailTemplate("Escribe tu texto arriba y presiona 'Parafrasear & Generar Plantilla'."), document.getElementById('template_preview'));
+        });
+    </script>
+
+</body>
+</html>
